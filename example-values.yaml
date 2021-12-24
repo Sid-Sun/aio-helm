@@ -1,0 +1,136 @@
+deployments:
+  - name: hello
+    labels:
+      app: hello
+      component: db
+    containers:
+      - name: wowie
+        image:
+          name: realsidsun/hello
+          tag: latest
+        ports:
+          - 22
+      - name: wowie
+        image:
+          name: realsidsun/hello
+          tag: latest
+        envs:
+          HAHA:
+            value: satan
+          WOW:
+            type: secret
+            secretName: nice
+            key: data
+          NICE:
+            type: ConfigMap
+            configMapName: heck
+            key: data2
+        resources:
+          limits:
+            cpu: 100m
+            mem: 100Mi
+  - name: wowie
+    labels:
+      app: wowie
+    volumes:
+          - name: data
+            type: pvc
+            claimName: data-disk
+          - name: data2
+            type: configMap
+            configMapName: beehive
+          - name: data3
+            type: secret
+            secretName: secret-beehive
+    containers:
+      - name: wowie
+        args: ["--provider", "local"]
+        image:
+          name: realsidsun/hello
+          tag: latest
+        volumeMounts:
+          - name: data
+            mountPath: /data
+            subPath: lost
+          - name: data2
+            mountPath: /data2
+
+statefulsets:
+  - name: wowie-kuma
+    labels:
+      app: wowie-app
+    serviceName: wowie-svc
+    volumes:
+          - name: data
+            type: pvc
+            claimName: data-disk
+    containers:
+      - name: wowie
+        args: ["--provider", "local"]
+        image:
+          name: realsidsun/hello
+          tag: latest
+        volumeMounts:
+          - name: data
+            mountPath: /data
+            subPath: lost
+          - name: data2
+            mountPath: /data2
+
+services:
+  - name: db
+    selectors:
+      app: wowie
+    ports:
+      - protocol: TCP
+        port: 22
+        targetPort: 30
+  - name: app
+    selectors:
+      app: wowie
+      component: app
+    ports:
+      - protocol: TCP
+        port: 22
+        targetPort: 300
+
+configmaps:
+  - name: beehive
+    data:
+      env: prod
+      provider: local
+  - name: heck
+    data:
+      heck: True
+  - name: raw
+    raw:
+      icon: cmxuZXFqa3Zua2puZWp2YmprZWJya2pudmtu
+
+secrets:
+  - name: secret-beehive
+    type: Opaque
+    data:
+      api: OlAK
+  - name: secret-beehive
+    type: Opaque
+    data:
+      api: OlAK
+      api2: OlAKf
+
+pvcs:
+  - name: data-disk
+    size: 1Gi
+    storageClass: local-disk
+    accessMode: ReadWriteOnce
+
+
+ingresses:
+  - name: wowie
+    tls: ioctl-ml
+    rules:
+      - host: sidsun.com
+        paths:
+          - path: /
+            svc: app
+            port: 22
+

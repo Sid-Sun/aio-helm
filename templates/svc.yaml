@@ -1,0 +1,24 @@
+{{ if .Values.services }}
+
+{{ range $service := .Values.services }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $.Release.Name }}-{{ $service.name }}-svc
+  namespace: {{ $.Release.Namespace }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- range $selectorName, $selector := $service.selectors }}
+    {{ $selectorName }}: {{ $.Release.Name }}-{{ $selector }}
+    {{- end }}
+  ports:
+    {{- range $port := $service.ports }}
+    - protocol: {{ $port.protocol }}
+      port: {{ $port.port }}
+      targetPort: {{ $port.targetPort }}
+    {{- end }}
+---
+{{ end }}
+
+{{ end }}

@@ -1,0 +1,95 @@
+{{ if .Values.deployments }}
+
+{{ range $deployment := .Values.deployments }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $.Release.Name }}-{{ $deployment.name }}-deploy
+  namespace: {{ $.Release.Namespace }}
+spec:
+  selector:
+    matchLabels:
+      {{- range $lableName, $lableValue := $deployment.labels }}
+      {{ $lableName }}: {{ $.Release.Name }}-{{ $lableValue }}
+      {{- end }}
+  template:
+    metadata:
+      labels:
+        {{- range $lableName, $lableValue := $deployment.labels }}
+        {{ $lableName }}: {{ $.Release.Name }}-{{ $lableValue }}
+        {{- end }}
+    spec:
+      {{- if $deployment.volumes }}
+      volumes:
+        {{- range $volume := $deployment.volumes }}
+        - name: {{ $volume.name }}
+          {{- if eq $volume.type "pvc" }}
+          persistentVolumeClaim:
+            claimName: {{ $.Release.Name }}-{{ $volume.claimName }}-pvc
+          {{- else if eq $volume.type "configMap" }}
+          configMap:
+            name: {{ $.Release.Name }}-{{ $volume.configMapName }}-cm
+          {{- else if eq $volume.type "secret" }}
+          secret:
+            secretName: {{ $.Release.Name }}-{{ $volume.secretName }}-secret
+          {{- end -}}
+        {{- end -}}
+      {{ end }}
+      containers:
+      {{- range $container := $deployment.containers }}
+      - name: {{ $container.name }}
+        image: {{ $container.image.name }}:{{ $container.image.tag }}
+        {{- if $container.args }}
+        args: 
+          {{- range $arg := $container.args }}
+          - {{ $arg | quote }}
+          {{- end -}}
+        {{- end }}
+        imagePullPolicy: {{ $container.imagePullPolicy | default "Always" }}
+        {{ if $container.resources -}}
+        resources:
+          limits:
+            memory: {{ $container.resources.limits.mem | quote }}
+            cpu: {{ $container.resources.limits.cpu | quote }}
+        {{- end -}}
+        {{- if $container.ports -}}
+        ports:
+          {{- range $port := $container.ports }}
+          - containerPort: {{ $port }}
+          {{- end -}}
+        {{- end -}}
+        {{ if $container.volumeMounts -}}
+        volumeMounts:
+          {{- range $volumeMount := $container.volumeMounts }}
+          - name: {{ $volumeMount.name }}
+            mountPath: {{ $volumeMount.mountPath }}
+            {{- if $volumeMount.subPath }}
+            subPath: {{ $volumeMount.subPath }}
+            {{- end -}}
+          {{- end -}}
+        {{- end -}}
+        {{ if $container.envs }}
+        env:
+          {{- range $key, $env := $container.envs }}
+          - name: {{ $key }}
+            {{ if $env.value -}}
+            value: {{ $env.value -}}
+            {{- else if $env.type -}}
+            valueFrom:
+              {{ if eq $env.type "ConfigMap" -}}
+              configMapKeyRef:
+                name: {{ $.Release.Name }}-{{ $env.configMapName }}-cm
+                key: {{ $env.key -}}
+              {{ else if eq $env.type "secret" -}}
+              secretKeyRef:
+                name: {{ $.Release.Name }}-{{ $env.secretName }}-secret
+                key: {{ $env.key -}}
+              {{- end -}}
+            {{- end -}}
+          {{- end -}}
+        {{- end -}}
+      {{- end }}
+---
+{{ end }}
+
+{{ end }}
