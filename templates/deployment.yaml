@@ -68,12 +68,12 @@ spec:
             {{- end -}}
           {{- end -}}
         {{- end -}}
-        {{ if $container.envs }}
+        {{ if $container.envs -}}
         env:
           {{- range $key, $env := $container.envs }}
           - name: {{ $key }}
             {{ if $env.value -}}
-            value: {{ $env.value -}}
+            value: {{ $env.value | quote -}}
             {{- else if $env.type -}}
             valueFrom:
               {{ if eq $env.type "ConfigMap" -}}
